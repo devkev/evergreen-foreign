@@ -1,0 +1,63 @@
+#!/bin/bash
+
+. shwrapnel
+
+case "$shwrapnel_cmdname" in
+    evergreen)
+        if [ "$1" = "patch" ]; then
+            args=()
+            next_is_common_point=n
+            for i; do
+                if [ "$next_is_common_point" = y ]; then
+                    EVERGREEN_COMMON_POINT="$i"
+                    next_is_common_point=n
+                else
+                    case "$i" in
+                        --common-point)
+                            next_is_common_point=y
+                            ;;
+                        --common-point=*)
+                            EVERGREEN_COMMON_POINT="${i#--common-point=}"
+                            ;;
+                        *)
+                            args+=("$i")
+                            ;;
+                    esac
+                fi
+            done
+            shwrapnel set_args "${args[@]}"
+
+            if [ "$EVERGREEN_COMMON_POINT" ]; then
+                export EVERGREEN_COMMON_POINT
+                export EVERGREEN_COMMON_POINT_FOREIGN="$(git show --no-patch --format='format:%B' "$EVERGREEN_COMMON_POINT" | grep -E -o -m 1 '\<[0-9a-fA-F]{40}\>')"
+                if [ "$EVERGREEN_COMMON_POINT_FOREIGN" = "" ]; then
+                    echo "$0: Unable to identify foreign common point from the commit message of $EVERGREEN_COMMON_POINT" 1>&2
+                    exit 1
+                fi
+
+                tmp_git_bin_dir="$(mktemp -d)"
+                trap 'rm -f "$tmp_git_bin_dir"/git ; rmdir "$tmp_git_bin_dir"' EXIT
+                ln -nsf "$shwrapnel_resolve_this" "$tmp_git_bin_dir"/git
+                PATH="$tmp_git_bin_dir:$PATH"
+            fi
+        fi
+        shwrapnel run
+        ;;
+
+    git)
+        if [ "$1" = "merge-base" -a "$2" = "master@{upstream}" ]; then
+            shwrapnel_args[1]="$EVERGREEN_COMMON_POINT"
+            shwrapnel run | sed -e "s/$EVERGREEN_COMMON_POINT/$EVERGREEN_COMMON_POINT_FOREIGN/g"
+
+        elif [ "$1" = "diff" -o "$1" = "log" ]; then
+            shwrapnel set_args "${@//$EVERGREEN_COMMON_POINT_FOREIGN/$EVERGREEN_COMMON_POINT}"
+            shwrapnel launch
+
+        else
+            shwrapnel launch
+
+        fi
+        ;;
+
+esac
+
