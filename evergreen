@@ -5,6 +5,9 @@
 case "$shwrapnel_cmdname" in
     evergreen)
         if [ "$1" = "patch" ]; then
+            unset EVERGREEN_COMMON_POINT
+            unset EVERGREEN_COMMON_POINT_FOREIGN
+
             args=()
             next_is_common_point=n
             for i; do
@@ -56,6 +59,9 @@ case "$shwrapnel_cmdname" in
                 trap 'rm -f "$tmp_git_bin_dir"/git ; rmdir "$tmp_git_bin_dir"' EXIT
                 ln -nsf "$shwrapnel_resolve_this" "$tmp_git_bin_dir"/git
                 PATH="$tmp_git_bin_dir:$PATH"
+            elif [ "$next_is_common_point" = y -o "${EVERGREEN_COMMON_POINT+set}" = set ]; then
+                echo "$0: No common point specified" 1>&2
+                exit 1
             fi
         fi
         shwrapnel run
