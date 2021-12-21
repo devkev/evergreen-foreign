@@ -1,9 +1,9 @@
 evergreen-foreign
 =================
 
-This is a wrapper script around the [evergreen](https://github.com/evergreen-ci/evergreen) CLI tool that allow submitting patch builds from a "foreign" repository, that is, one which logically contains the code for the project, but with modified git history (such that the local commit ids are different to those in the actual project repository).
+This is a wrapper script around the [evergreen](https://github.com/evergreen-ci/evergreen) CLI tool that allow submitting patch builds for a "foreign" repository, that is, one which logically contains the same code for the project, but has a modified or different git history - ie. the local commit ids are different to those in the "actual" project repository, even though the contents of the files are the same.
 
-For example, this may be necessary if the project has historical commits that are too large to be pushed to Github, and it's not appropriate to use a branch or fork of the actual project Github repo.
+For example, this may be necessary if the actual project has historical commits that are now too large to be pushed to Github, and it's not appropriate to use a branch or fork of the project's actual Github repo.
 
 
 Installation
