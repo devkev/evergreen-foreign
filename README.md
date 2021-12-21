@@ -21,5 +21,25 @@ Usage
 
 Most invocations of the `evergreen` wrapper will be passed through verbatim, and have unchanged behaviour.
 
-The wrapper allows passing a new `--common-point` argument to `evergreen patch`, which indicates the git commit ref to be used as the base commit for the patch.  The commit message for this ref will be scanned, and the first git commit hash (40 hex digits) found is treated as the corresponding git commit hash in the actual project repo.
+The wrapper allows passing a new `--common-point` argument to `evergreen patch`:
+```
+evergreen patch ... --common-point local_common_point=foreign_common_point
+```
+
+This indicates the patch should be taken against git commit ref `local_common_point` in the local tree, and that this commit corresponds to commit ref `foreign_common_point` in the "actual" upstream project repo.  Eg:
+```
+$ evergreen patch ... --common-point f0b65992790ddaa74698b2209cbcad91417327be=83972b91fc8c84f38217c36735cf0828888a774a
+```
+
+If the `=foreign_common_point` specifier is omitted, then the wrapper will scan the commit message of `local_common_point`, and use the first git commit hash (40 hex digits) as the `foreign_common_point`.  Eg:
+```
+$ git show --no-patch f0b65992790ddaa74698b2209cbcad91417327be
+commit f0b65992790ddaa74698b2209cbcad91417327be
+Author: Kevin Pulo <kevin.pulo@mongodb.com>
+Date:   Sat Aug 28 14:49:09 2021 +1000
+
+    mongodb/mongo as of 83972b91fc8c84f38217c36735cf0828888a774a
+
+$ evergreen patch ... --common-point f0b65992790ddaa74698b2209cbcad91417327be
+```
 
