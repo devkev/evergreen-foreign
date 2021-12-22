@@ -8,8 +8,20 @@ case "$shwrapnel_cmdname" in
             unset EVERGREEN_COMMON_POINT
             unset EVERGREEN_COMMON_POINT_FOREIGN
 
+            function get_ref_from_commit_msg {
+                git show --no-patch --format='format:%B' "$1" | grep -E -o -m 1 '\<[0-9a-fA-F]{40}\>'
+            }
+
+            function check_not_seen {
+                if [ "$seen" != n ]; then
+                    echo "$0: --common-point and --foreign are mutually exclusive and can only be specified at most once" 1>&2
+                    exit 1
+                fi
+            }
+
             args=()
             next_is_common_point=n
+            seen=n
             for i; do
                 if [ "$next_is_common_point" = y ]; then
                     EVERGREEN_COMMON_POINT="$i"
@@ -17,10 +29,30 @@ case "$shwrapnel_cmdname" in
                 else
                     case "$i" in
                         --common-point)
+                            check_not_seen
                             next_is_common_point=y
+                            seen=y
                             ;;
                         --common-point=*)
+                            check_not_seen
                             EVERGREEN_COMMON_POINT="${i#--common-point=}"
+                            seen=y
+                            ;;
+                        --foreign)
+                            check_not_seen
+                            unset EVERGREEN_COMMON_POINT
+                            for local_ref in $(git rev-list --max-parents=0 HEAD); do
+                                foreign_ref="$(get_ref_from_commit_msg "$local_ref")"
+                                if [ "$foreign_ref" != "" ]; then
+                                    EVERGREEN_COMMON_POINT="$local_ref=$foreign_ref"
+                                    break
+                                fi
+                            done
+                            if [ "$EVERGREEN_COMMON_POINT" = "" ]; then
+                                echo "$0: Unable to identify a suitable parentless commit ref to use as the common point" 1>&2
+                                exit 1
+                            fi
+                            seen=y
                             ;;
                         *)
                             args+=("$i")
@@ -41,7 +73,7 @@ case "$shwrapnel_cmdname" in
                         EVERGREEN_COMMON_POINT="${EVERGREEN_COMMON_POINT%:*}"
                         ;;
                     *)
-                        EVERGREEN_COMMON_POINT_FOREIGN="$(git show --no-patch --format='format:%B' "$EVERGREEN_COMMON_POINT" | grep -E -o -m 1 '\<[0-9a-fA-F]{40}\>')"
+                        EVERGREEN_COMMON_POINT_FOREIGN="$(get_ref_from_commit_msg "$EVERGREEN_COMMON_POINT")"
                         if [ "$EVERGREEN_COMMON_POINT_FOREIGN" = "" ]; then
                             echo "$0: Unable to identify foreign common point from the commit message of $EVERGREEN_COMMON_POINT" 1>&2
                             exit 1
