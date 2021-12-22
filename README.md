@@ -21,25 +21,43 @@ Usage
 
 Most invocations of the `evergreen` wrapper will be passed through verbatim, and have unchanged behaviour.
 
-The wrapper allows passing a new `--common-point` argument to `evergreen patch`:
-```
-evergreen patch ... --common-point local_common_point=foreign_common_point
-```
+1. **Manually specify local and foreign common points:**
 
-This indicates the patch should be taken against git commit ref `local_common_point` in the local tree, and that this commit corresponds to commit ref `foreign_common_point` in the "actual" upstream project repo.  Eg:
-```
-$ evergreen patch ... --common-point f0b65992790ddaa74698b2209cbcad91417327be=83972b91fc8c84f38217c36735cf0828888a774a
-```
+    The wrapper allows passing a new `--common-point` argument to `evergreen patch`:
+    ```
+    evergreen patch ... --common-point local_common_point=foreign_common_point
+    ```
 
-If the `=foreign_common_point` specifier is omitted, then the wrapper will scan the commit message of `local_common_point`, and use the first git commit hash (40 hex digits) as the `foreign_common_point`.  Eg:
-```
-$ git show --no-patch f0b65992790ddaa74698b2209cbcad91417327be
-commit f0b65992790ddaa74698b2209cbcad91417327be
-Author: Kevin Pulo <kevin.pulo@mongodb.com>
-Date:   Sat Aug 28 14:49:09 2021 +1000
+    This indicates the patch should be taken against git commit ref `local_common_point` in the local tree, and that this commit corresponds to commit ref `foreign_common_point` in the "actual" upstream project repo.  For example:
+    ```
+    $ evergreen patch ... --common-point f0b65992790ddaa74698b2209cbcad91417327be=83972b91fc8c84f38217c36735cf0828888a774a
+    ```
 
-    mongodb/mongo as of 83972b91fc8c84f38217c36735cf0828888a774a
+2. **Manually specify local common point, get foreign common point from commit message:**
 
-$ evergreen patch ... --common-point f0b65992790ddaa74698b2209cbcad91417327be
-```
+    If the `=foreign_common_point` specifier is omitted, then the wrapper will scan the commit message of `local_common_point`, and use the first git commit hash (40 hex digits) as the `foreign_common_point`.  For example, this is equivalent to the previous example above:
+    ```
+    $ git show --no-patch f0b65992790ddaa74698b2209cbcad91417327be
+    commit f0b65992790ddaa74698b2209cbcad91417327be
+    Author: Kevin Pulo <kevin.pulo@mongodb.com>
+    Date:   Sat Aug 28 14:49:09 2021 +1000
+
+        mongodb/mongo as of 83972b91fc8c84f38217c36735cf0828888a774a
+
+    $ evergreen patch ... --common-point f0b65992790ddaa74698b2209cbcad91417327be
+    ```
+
+3. **Automatically find local and foreign common points:**
+
+    If the `local_common_point` is a parentless commit, and has a commit message that contains a git commit hash (40 hex digits), then it is possible to use `--foreign` instead of `--common-point`.  For example, this is equivalent to the previous example above:
+    ```
+    $ git log | tail -6
+    commit f0b65992790ddaa74698b2209cbcad91417327be
+    Author: Kevin Pulo <kevin.pulo@mongodb.com>
+    Date:   Sat Aug 28 14:49:09 2021 +1000
+
+        mongodb/mongo as of 83972b91fc8c84f38217c36735cf0828888a774a
+
+    $ evergreen patch ... --foreign
+    ```
 
